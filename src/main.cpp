@@ -4,17 +4,17 @@
 
 Perlin perlin(2);
 const int wsz=600;
-Vec2f perlin_lookup[wsz][wsz];
+vec2 perlin_lookup[wsz][wsz];
 float anim=0;
 
 struct Part{
-	Vec2f pos;
-	Vec2f oldPos;
-	Vec2f vel;
-	Part(Vec2f pos){
+	vec2 pos;
+	vec2 oldPos;
+	vec2 vel;
+	Part(vec2 pos){
 		this->pos=pos;
 		this->oldPos=pos;
-		this->vel = Vec2f::zero();
+		this->vel = vec2::zero();
 	}
 };
 struct PSys {
@@ -23,17 +23,17 @@ struct PSys {
 	{
 		foreach(auto& part, parts)
 		{
-			auto d2D = Vec2f(part.pos.x/wsz, part.pos.y/wsz)*2;
+			auto d2D = vec2(part.pos.x/wsz, part.pos.y/wsz)*2;
 			float dx=perlin.fBm(d2D.x, d2D.y, 0+anim);
 			float dy=perlin.fBm(d2D.x, d2D.y, .5+anim);
 			part.oldPos = part.pos;
-			part.pos += Vec2f(dx, dy)*100;
+			part.pos += vec2(dx, dy)*100;
 			//part.pos+=part.vel;
 		}
 	};
 } psys;
 
-struct SApp : AppBasic {
+struct SApp : App {
 	void setup()
 	{
 		createConsole();
@@ -52,12 +52,12 @@ struct SApp : AppBasic {
 		{
 			if(i%10!=0)continue;
 			if(i<getWindowHeight()){
-				psys.parts.push_back(Part(Vec2f(0,i)));
-				psys.parts.push_back(Part(Vec2f(getWindowWidth(),i)));
+				psys.parts.push_back(Part(vec2(0,i)));
+				psys.parts.push_back(Part(vec2(getWindowWidth(),i)));
 			}
 			if(i<getWindowWidth()){
-				psys.parts.push_back(Part(Vec2f(i,0)));
-				psys.parts.push_back(Part(Vec2f(i,getWindowHeight())));
+				psys.parts.push_back(Part(vec2(i,0)));
+				psys.parts.push_back(Part(vec2(i,getWindowHeight())));
 			}
 		}
 		gl::enableAdditiveBlending();

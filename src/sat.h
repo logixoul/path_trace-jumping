@@ -72,7 +72,7 @@ satBlurEdgeCase<T>(image, radius, newMap, radius,            image.w - radius,  
 template<class Ti>
 void satBlurEdgeCase(Array2D<Ti>& image, int radius, Array2D<Ti>& result, int x1, int x2, int y1, int y2)
 {
-    Vec2i offset(-radius, -radius);
+    ivec2 offset(-radius, -radius);
     for(int x=x1; x<x2; x++) {
         for(int y=y1;y<y2; y++) {
             Ti sum;

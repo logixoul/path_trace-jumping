@@ -6,10 +6,10 @@
 #include "sat.h"
 Perlin perlin(5);
 const int wsz=600;
-Vec2f perlin_lookup[wsz][wsz];
+vec2 perlin_lookup[wsz][wsz];
 float anim=0;
 int splitAge=1000;
-Array2D<Vec2f> interact_map(wsz,wsz);
+Array2D<vec2> interact_map(wsz,wsz);
 Area world(0,0, wsz,wsz);
 
 struct Part{
@@ -17,13 +17,13 @@ struct Part{
 	bool slowlyDie;
 	struct Pos
 	{
-		Vec2f vec;
-		Vec2f vel;
+		vec2 vec;
+		vec2 vel;
 		bool wrap;
-		Pos(Vec2f vec, bool wrap){ this->vec=vec; this->wrap=wrap;vel=Vec2f::zero();}
+		Pos(vec2 vec, bool wrap){ this->vec=vec; this->wrap=wrap;vel=vec2();}
 	};
 	deque<Pos> pos;
-	Part(Vec2f pos,float index){
+	Part(vec2 pos,float index){
 		this->pos.push_back(Pos(pos, false));
 		this->index=index;
 		age=Rand::randInt(0,splitAge);
@@ -37,14 +37,14 @@ struct Part{
 				pos.pop_front();
 			return;
 		}
-		auto d2D = Vec2f(pos.back().vec.x/wsz, pos.back().vec.y/wsz)*2;
+		auto d2D = vec2(pos.back().vec.x/wsz, pos.back().vec.y/wsz)*2.0f;
 		float dx=sin(anim)*perlin.fBm(d2D.x, d2D.y, 0+anim+index);
 		float dy=cos(anim)*perlin.fBm(d2D.x, d2D.y, .5+anim+index);
-		auto d = Vec2f(dx, dy)*10;
+		auto d = vec2(dx, dy)*10.0f;
 		//d += interact_map.limitGet(pos.back().vec);
 		pos.back().vel+=d;//d.normalized()*max(10.f,d.length());
 		pos.back().vel*=.999;
-		index+=std::log(1+pos.back().vel.length())*.00001;
+		index+=std::log(1+length(pos.back().vel))*.00001;
 		auto newPos = pos.back().vec+pos.back().vel;
 		auto nonWrapped=newPos;
 		if(newPos.x<0) newPos.x+=wsz;
@@ -70,8 +70,8 @@ struct PSys {
 			if(part.age>splitAge&&!part.slowlyDie)
 			{
 				auto newPart = Part(part.pos.front().vec, part.index+.1);
-				newPart.pos.front().vel.rotate(-1);
-				part.pos.front().vel.rotate(1);
+				newPart.pos.front().vel=glm::rotate(newPart.pos.front().vel, -1.0f);
+				part.pos.front().vel = glm::rotate(part.pos.front().vel, 1.0f);
 				newParts.push_back(newPart);
 				part.age=INT_MIN;
 			}
@@ -82,8 +82,8 @@ struct PSys {
 		cout<<parts.size()<<endl;
 	};
 } psys;
-bool showInteractMap; bool captureMouse=true;Vec3f worldUp(0,1,0);
-struct SApp : AppBasic {
+bool showInteractMap; bool captureMouse=true;vec3 worldUp(0,1,0);
+struct SApp : App {
 	ci::CameraPersp cam;
 	void setup()
 	{
@@ -96,8 +96,7 @@ struct SApp : AppBasic {
 		cam = ci::CameraPersp();
 		updownRot=0;leftrightRot=0;
 		hideCursor();
-		camPos=Vec3f(0,0, 0);
-		keys.resize(256);
+		camPos=vec3(0,0, 0);
 		yvel=0;
 		cam.setFov(100);
 	}
@@ -110,28 +109,25 @@ struct SApp : AppBasic {
 		{
 			if(i%3!=0)continue;
 			if(i<getWindowHeight()){
-				psys.parts.push_back(Part(Vec2f(0,i),pindex));
+				psys.parts.push_back(Part(vec2(0,i),pindex));
 				pindex+=pindexstep;
-				psys.parts.push_back(Part(Vec2f(getWindowWidth(),i),pindex));
+				psys.parts.push_back(Part(vec2(getWindowWidth(),i),pindex));
 				pindex+=pindexstep;
 			}
 			if(i<getWindowWidth()){
-				psys.parts.push_back(Part(Vec2f(i,0),pindex));
+				psys.parts.push_back(Part(vec2(i,0),pindex));
 				pindex+=pindexstep;
-				psys.parts.push_back(Part(Vec2f(i,getWindowHeight()),pindex));
+				psys.parts.push_back(Part(vec2(i,getWindowHeight()),pindex));
 				pindex+=pindexstep;
 			}
 		}
 	}
-	void mouseDown(MouseEvent e)
-	{
-	}
-	float updownRot, leftrightRot; Vec3f camPos; float yvel; Vec2i oldMPos;
+	float updownRot, leftrightRot; vec3 camPos; float yvel; ivec2 oldMPos;
 	void mouseMove(MouseEvent e)
 	{
 		if(e.getPos()==oldMPos)return;//recursion
 		
-		Quatf o = cam.getOrientation();
+		quat o = cam.getOrientation();
 		leftrightRot-=e.getX()-oldMPos.x;
 		updownRot+=e.getY()-oldMPos.y;
 		
@@ -141,13 +137,12 @@ struct SApp : AppBasic {
 		}else
 			oldMPos=e.getPos();
 		//cam.setOrientation(Quatf(0, leftrightRot/1000.0, 0)*Quatf(updownRot/1000.0, 0, 0));
-		//cam.setWorldUp(Vec3f(0, 0, 1));
+		//cam.setWorldUp(vec3(0, 0, 1));
 	}
-	void centerMouse() { auto newCursorPos = getWindowPos() + Vec2i(wsz,wsz)/2;SetCursorPos(newCursorPos.x, newCursorPos.y); oldMPos=newCursorPos-getWindowPos(); }
+	void centerMouse() { auto newCursorPos = getWindowPos() + ivec2(wsz,wsz)/2;SetCursorPos(newCursorPos.x, newCursorPos.y); oldMPos=newCursorPos-getWindowPos(); }
 	vector<bool> keys;
 	void keyDown(KeyEvent e)
 	{
-		keys[e.getChar()]=true;
 		if(e.getChar()=='i')
 			showInteractMap = !showInteractMap;
 		if(e.getCode()==KeyEvent::KEY_ESCAPE)
@@ -157,25 +152,22 @@ struct SApp : AppBasic {
 		if(e.getChar()==' ')
 			yvel=10;
 	}
-	void keyUp(KeyEvent e)
-	{
-		keys[e.getChar()]=false;
-	}
-	Matrix33f getCameraRotation() {
-		//return Matrix33f::createRotation(Vec3f(
-		return Matrix33f::createRotation(Vec3f(updownRot/1000.0,leftrightRot/1000.0,0));
+	mat3 getCameraRotation() {
+		mat4 rot = glm::eulerAngleYXZ(updownRot / 1000.0f, leftrightRot / 1000.0f, 0.0f);
+		return mat3(rot);
+		//return mat3::createRotation(vec3());
 	}
 
 	void updateCam()
 	{
-		//Matrix33f cameraRotation = Matrix.CreateRotationX(leftrightRot) * Matrix.CreateRotationY(updownRot);
+		//mat3 cameraRotation = Matrix.CreateRotationX(leftrightRot) * Matrix.CreateRotationY(updownRot);
 		auto cameraRotation = this->getCameraRotation();
-		Vec3f cameraOriginalTarget = Vec3f(0, 0, 1);
-		Vec3f cameraRotatedTarget = cameraRotation.transformVec(cameraOriginalTarget);
-		Vec3f cameraFinalTarget = camPos + cameraRotatedTarget;
+		vec3 cameraOriginalTarget = vec3(0, 0, 1);
+		vec3 cameraRotatedTarget = cameraRotation * cameraOriginalTarget;
+		vec3 cameraFinalTarget = camPos + cameraRotatedTarget;
 
-		Vec3f cameraOriginalUpVector = worldUp;
-		Vec3f cameraRotatedUpVector = cameraRotation.transformVec(cameraOriginalUpVector);
+		vec3 cameraOriginalUpVector = worldUp;
+		vec3 cameraRotatedUpVector = cameraRotation * cameraOriginalUpVector;
 		//cam.setEyePoint(camPos);
 		//cam.setViewDirection(cameraFinalTarget-camPos);
 		//cam.setWorldUp(cameraRotatedUpVector);
@@ -186,9 +178,9 @@ struct SApp : AppBasic {
 	void swapYZ()
 	{
 		glMultMatrixf(Matrix44f(
-				Vec3f(1, 0, 0),
-				Vec3f(0, 0, 1),
-				Vec3f(0, 1, 0)));
+				vec3(1, 0, 0),
+				vec3(0, 0, 1),
+				vec3(0, 1, 0)));
 	}
 	void draw()
 	{
@@ -203,16 +195,16 @@ struct SApp : AppBasic {
 		if(camPos.y<50)camPos.y=50;
 
 		auto cameraRotation = this->getCameraRotation();
-		const int camSpeed=10;
-		Vec3f moveDir = Vec3f(cam.getViewDirection().x, 0, cam.getViewDirection().z).normalized() * camSpeed;
+		const float camSpeed=10;
+		vec3 moveDir = normalize(vec3(cam.getViewDirection().x, 0, cam.getViewDirection().z)) * camSpeed;
 		if(keys['w'])
 			camPos+=moveDir;
 		if(keys['s'])
 			camPos-=moveDir;
 		if(keys['a'])
-			camPos-=moveDir.cross(worldUp);
+			camPos-=cross(moveDir, worldUp);
 		if(keys['d'])
-			camPos+=moveDir.cross(worldUp);
+			camPos+=cross(moveDir, worldUp);
 		const float fff=5;
 		if(keys['i'])updownRot+=fff;
 		if(keys['k'])updownRot-=fff;
@@ -223,7 +215,7 @@ struct SApp : AppBasic {
 		if(captureMouse)
 			centerMouse();
 
-		//cam.setCenterOfInterestPoint(Vec3f(getMousePos().x, wsz-getMousePos().y, 0));
+		//cam.setCenterOfInterestPoint(vec3(getMousePos().x, wsz-getMousePos().y, 0));
 		cam.setFarClip(10000);
 		gl::setMatrices(cam);
 
@@ -232,14 +224,14 @@ struct SApp : AppBasic {
 		
 		gl::enableAdditiveBlending();
 		gl::color(Color::white());
-		gl::drawStrokedCube(AxisAlignedBox3f(Vec3f(0,0,0),Vec3f(wsz,wsz,wsz)));
+		gl::drawStrokedCube(AxisAlignedBox3f(vec3(0,0,0),vec3(wsz,wsz,wsz)));
 		//glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
 		gl::color(Color::gray(.5));
 		glEnable(GL_LINE_SMOOTH);
 		glLineWidth(.5);
 		for(int i = 0; i < 3;i++)
 			psys.update();
-		auto setColor = [&](Part& part){ return gl::color(hsvToRGB(Vec3f(fmod(part.index,1), .95,.2))); };
+		auto setColor = [&](Part& part){ return gl::color(hsvToRgb(vec3(fmod(part.index,1), .95,.2))); };
 		foreach(auto& part, psys.parts)
 		{
 			setColor(part);
@@ -255,8 +247,8 @@ struct SApp : AppBasic {
 			for(int i = part.pos.size()-1;i>=0;i--) {
 				auto pos=part.pos[i];
 				if(pos.wrap) { glEnd(); glBegin(GL_LINE_STRIP); continue; }
-				gl::vertex(pos.vec.x, pos.vel.length()*100, pos.vec.y);
-				auto dist=pos.vel.length(); auto step=pos.vel.normalized(); auto p = pos.vec;
+				gl::vertex(pos.vec.x, length(pos.vel)*100, pos.vec.y);
+				auto dist=length(pos.vel); auto step=normalize(pos.vel); auto p = pos.vec;
 				for(int i=0;i<dist;i++) {
 					p+=step;
 					//interact_map.limitGet(p) += pos.vel*10;
@@ -265,7 +257,7 @@ struct SApp : AppBasic {
 			glEnd();
 		}
 		for(int i=0;i<interact_map.area;i++) interact_map(i)*=.99f;
-		//satBlur<Vec2f, Vec2d>(interact_map, 10);
+		//satBlur<vec2, Vec2d>(interact_map, 10);
 		gl::color(1,0,0);
 		glLineWidth(1);
 		if(showInteractMap)
@@ -275,8 +267,8 @@ struct SApp : AppBasic {
 				for(int y = 0; y < wsz; y+=10)
 				{
 					auto in = interact_map(x, y);
-					in = in.normalized() * log(in.length()+1);
-					gl::drawLine(Vec2f(x, y), Vec2f(x, y) + in);
+					in = normalize(in) * log(length(in)+1);
+					gl::drawLine(vec2(x, y), vec2(x, y) + in);
 				}
 			}
 		}
